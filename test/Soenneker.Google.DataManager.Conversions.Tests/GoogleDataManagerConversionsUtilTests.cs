@@ -43,7 +43,7 @@ public sealed class GoogleDataManagerConversionsUtilTests
     }
 
     [Test]
-    public async Task Batches_use_real_sdk_serialization_and_preserve_request_options()
+    public async ValueTask Batches_use_real_sdk_serialization_and_preserve_request_options()
     {
         using var transport = new Transport();
         var util = new GoogleDataManagerConversionsUtil(transport);
@@ -73,7 +73,7 @@ public sealed class GoogleDataManagerConversionsUtilTests
     }
 
     [Test]
-    public async Task Later_failure_preserves_first_batch_and_does_not_retry()
+    public async ValueTask Later_failure_preserves_first_batch_and_does_not_retry()
     {
         using var transport = new Transport { FailOn = 2 };
         var util = new GoogleDataManagerConversionsUtil(transport);
@@ -92,7 +92,7 @@ public sealed class GoogleDataManagerConversionsUtilTests
     }
 
     [Test]
-    public async Task Validation_and_cancellation_prevent_network_calls()
+    public async ValueTask Validation_and_cancellation_prevent_network_calls()
     {
         using var transport = new Transport();
         var util = new GoogleDataManagerConversionsUtil(transport);
@@ -107,7 +107,7 @@ public sealed class GoogleDataManagerConversionsUtilTests
     }
 
     [Test]
-    public async Task Cancellation_between_batches_stops_later_uploads()
+    public async ValueTask Cancellation_between_batches_stops_later_uploads()
     {
         using var transport = new Transport();
         using var cancellation = new CancellationTokenSource();
@@ -121,7 +121,7 @@ public sealed class GoogleDataManagerConversionsUtilTests
     }
 
     [Test]
-    public async Task Diagnostics_preserve_partial_success_and_error_details()
+    public async ValueTask Diagnostics_preserve_partial_success_and_error_details()
     {
         using var transport = new Transport();
         var util = new GoogleDataManagerConversionsUtil(transport);
