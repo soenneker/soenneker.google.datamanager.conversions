@@ -43,7 +43,7 @@ public sealed class GoogleDataManagerConversionsUtilTests
     }
 
     [Test]
-    public async ValueTask Batches_use_real_sdk_serialization_and_preserve_request_options()
+    public async ValueTask Batches_use_real_sdk_serialization_and_preserve_request_options(CancellationToken cancellationToken)
     {
         using var transport = new Transport();
         var util = new GoogleDataManagerConversionsUtil(transport);
@@ -53,7 +53,7 @@ public sealed class GoogleDataManagerConversionsUtilTests
         request.ValidateOnly = true;
         request.Events[0] = util.CreateEvent(Sale("customer@example.com", null, null));
         var batches = new List<ConversionUploadBatch>();
-        await foreach (ConversionUploadBatch batch in util.UploadBatches("sales.json", request)) batches.Add(batch);
+        await foreach (ConversionUploadBatch batch in util.UploadBatches("sales.json", request, cancellationToken: cancellationToken)) batches.Add(batch);
         Check(batches.Count == 2 && batches[0].Count == 2000 && batches[1].StartIndex == 2000 && batches[1].Count == 1, "Batch boundaries are incorrect.");
         Check(request.Events.Count == 2001, "Input list was changed.");
         Check(batches[0].Response.RequestId == "request-1" && batches[1].Response.RequestId == "request-2", "Request IDs were lost.");
@@ -73,14 +73,14 @@ public sealed class GoogleDataManagerConversionsUtilTests
     }
 
     [Test]
-    public async ValueTask Later_failure_preserves_first_batch_and_does_not_retry()
+    public async ValueTask Later_failure_preserves_first_batch_and_does_not_retry(CancellationToken cancellationToken)
     {
         using var transport = new Transport { FailOn = 2 };
         var util = new GoogleDataManagerConversionsUtil(transport);
         var results = new List<ConversionUploadBatch>();
         try
         {
-            await foreach (ConversionUploadBatch batch in util.UploadBatches("sales.json", Request(4001))) results.Add(batch);
+            await foreach (ConversionUploadBatch batch in util.UploadBatches("sales.json", Request(4001), cancellationToken: cancellationToken)) results.Add(batch);
             throw new Exception("Expected API failure.");
         }
         catch (GoogleApiException exception)
@@ -92,22 +92,22 @@ public sealed class GoogleDataManagerConversionsUtilTests
     }
 
     [Test]
-    public async ValueTask Validation_and_cancellation_prevent_network_calls()
+    public async ValueTask Validation_and_cancellation_prevent_network_calls(CancellationToken cancellationToken)
     {
         using var transport = new Transport();
         var util = new GoogleDataManagerConversionsUtil(transport);
-        await ThrowsAsync<ArgumentException>(() => util.Upload("sales.json", Request(0)));
-        await ThrowsAsync<ArgumentException>(() => util.Upload("sales.json", Request(2001)));
+        await ThrowsAsync<ArgumentException>(() => util.Upload("sales.json", Request(0), cancellationToken: cancellationToken));
+        await ThrowsAsync<ArgumentException>(() => util.Upload("sales.json", Request(2001), cancellationToken: cancellationToken));
         IngestEventsRequest missingEncoding = Request(1);
         missingEncoding.Events[0].UserData = new UserData();
-        await ThrowsAsync<ArgumentException>(() => util.Upload("sales.json", missingEncoding));
+        await ThrowsAsync<ArgumentException>(() => util.Upload("sales.json", missingEncoding, cancellationToken: cancellationToken));
         await ThrowsAsync<OperationCanceledException>(() => util.Upload("sales.json", Request(1), new CancellationToken(true)));
-        await foreach (ConversionUploadBatch _ in util.UploadBatches("sales.json", Request(0))) throw new Exception("Empty upload yielded a batch.");
+        await foreach (ConversionUploadBatch _ in util.UploadBatches("sales.json", Request(0), cancellationToken: cancellationToken)) throw new Exception("Empty upload yielded a batch.");
         Check(transport.Bodies.Count == 0, "Invalid/cancelled input reached the network.");
     }
 
     [Test]
-    public async ValueTask Cancellation_between_batches_stops_later_uploads()
+    public async ValueTask Cancellation_between_batches_stops_later_uploads(CancellationToken cancellationToken)
     {
         using var transport = new Transport();
         using var cancellation = new CancellationTokenSource();
@@ -121,11 +121,11 @@ public sealed class GoogleDataManagerConversionsUtilTests
     }
 
     [Test]
-    public async ValueTask Diagnostics_preserve_partial_success_and_error_details()
+    public async ValueTask Diagnostics_preserve_partial_success_and_error_details(CancellationToken cancellationToken)
     {
         using var transport = new Transport();
         var util = new GoogleDataManagerConversionsUtil(transport);
-        RetrieveRequestStatusResponse response = await util.GetStatus("sales.json", "request-1");
+        RetrieveRequestStatusResponse response = await util.GetStatus("sales.json", "request-1", cancellationToken: cancellationToken);
         Check(transport.Uris[0].AbsolutePath == "/v1/requestStatus:retrieve" && transport.Uris[0].Query.Contains("requestId=request-1"), "Diagnostics request is incorrect.");
         var status = response.RequestStatusPerDestination[0];
         Check(status.RequestStatus == "PARTIAL_SUCCESS", "Partial failure was hidden.");
