@@ -47,6 +47,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Soenneker.Google.DataManager.Client" Version="11.0.54" />
+        <PackageReference Include="Soenneker.Google.DataManager.Client" Version="11.0.55" />
     </ItemGroup>
 </Project>
